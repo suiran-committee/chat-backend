@@ -2,7 +2,7 @@
 
 ## localでの開発環境
 1. mkcert(推奨) or 自己証明書作成
-- mkcert
+- mkcert  
 [開発環境をhttps化するmkcertの仕組み](https://qiita.com/k_kind/items/b87777efa3d29dcc4467)
 ```bash
 # 1) mkcert をインストール

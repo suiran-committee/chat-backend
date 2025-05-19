@@ -45,7 +45,7 @@ curl -sk $URL/messages | jq .
 ]
 ```
 
-### webscket
+### websocket
 #### /ws
 ``` js
 // 例

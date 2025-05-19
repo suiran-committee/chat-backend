@@ -1,7 +1,21 @@
 # chat-backend
 
 ## localでの開発環境
-1. 自己証明書作成
+1. mkcert(推奨) or 自己証明書作成
+- mkcert
+[開発環境をhttps化するmkcertの仕組み](https://qiita.com/k_kind/items/b87777efa3d29dcc4467)
+```bash
+# 1) mkcert をインストール
+brew install mkcert nss
+
+# 2) ローカル CA をシステムに登録  ※初回のみ
+mkcert -install
+
+# 3) バックエンド用の証明書を生成
+mkcert -cert-file cert.pem -key-file key.pem localhost 127.0.0.1 ::1
+```
+
+- 自己証明書
 ```
 openssl req -x509 -newkey rsa:2048 -nodes \
   -keyout key.pem -out cert.pem -days 365 \
@@ -32,6 +46,10 @@ curl -sk $URL/messages | jq .
 
 ##### res
 ```
+null
+
+or
+
 [
   {
     "username": "aaa",
@@ -48,44 +66,36 @@ curl -sk $URL/messages | jq .
 ### websocket
 #### /ws
 ``` js
-// 例
-const beUrl = "wss://localhost:8443";
+<script setup>
+import { ref, onMounted } from 'vue'
 
-const socket = new WebSocket(`${beUrl}/ws`);
-socket.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
-    messages.value.push(msg);
-};
-```
+const messages = ref([])
+const username = ref('')
+const content = ref('')
+let socket
 
+const sendMessage = () => {
+  if (!username.value || !content.value) return
+  socket.send(JSON.stringify({ username: username.value, content: content.value }))
+  content.value = ''
+}
 
- ## Front
- ***※TLS化必須***
+onMounted(async () => {
+  try {
+    const beUrl = "wss://localhost:8443";
 
-1.自己証明書作成
-```
-openssl req -x509 -newkey rsa:2048 -nodes \
-  -keyout key.pem -out cert.pem -days 365 \
-  -subj "/CN=localhost"
-```
+    socket = new WebSocket(`${beUrl}/ws`);
+    socket.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      messages.value.push(msg);
+    };
 
-2. 設定(Viteの場合)
-vite.config.js
-```
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import fs from 'fs'
-import path from 'path'
-
-export default defineConfig({
-  plugins: [vue()],
-  server: {
-    https: {
-      key: fs.readFileSync(path.resolve(__dirname, 'cert/key.pem')),
-      cert: fs.readFileSync(path.resolve(__dirname, 'cert/cert.pem')),
-    },
-    port: 5173,
-    host: 'localhost',
+    const res = await fetch("https://localhost:8443/messages");
+    const history = await res.json();
+    messages.value.push(...history);
+  } catch (err) {
+    console.error("履歴取得失敗", err);
   }
-})
+});
+</script>
 ```

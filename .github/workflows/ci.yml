@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_USER: chat
+      DB_PASSWORD: chat
+      DB_NAME: chat
+      REDIS_ADDR: 127.0.0.1:6379
+      FRONTEND_ORIGIN: '*'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+
+      - name: Compose up (db & redis)
+        run: |
+          docker compose up -d db redis
+          # wait for DB
+          until docker exec $(docker compose ps -q db) pg_isready -U $DB_USER >/dev/null 2>&1; do sleep 2; done
+          until docker exec $(docker compose ps -q redis) redis-cli ping >/dev/null 2>&1; do sleep 2; done
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Build binary
+        run: CGO_ENABLED=0 go build -o bin/server ./cmd/server

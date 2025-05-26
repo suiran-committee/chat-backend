@@ -38,11 +38,13 @@ jobs:
       - name: Run unit tests (-short)
         run: go test -short ./...
 
-      - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
-
-      - name: Run govulncheck (warn only)
-        run: govulncheck -C . -format text ./... || true
+      - name: govulncheck
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: "1.23"
+          check-latest: true
+          go-package: ./...
+          output-format: text
 
   integration:
     if: github.event_name != 'pull_request'
@@ -62,10 +64,10 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
       redis:
         image: redis:7-alpine
         ports: ["6379:6379"]
+        container_name: gh-redis
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s
@@ -88,6 +90,11 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
           key: ${{ runner.os }}-go1.23-${{ hashFiles('**/go.sum') }}
+
+      - name: Install redis-cli
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends redis-tools
 
       - name: Wait for DB / Redis
         run: |

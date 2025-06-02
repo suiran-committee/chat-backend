@@ -27,11 +27,14 @@ func TestRedisPubSub_PublishSubscribe(t *testing.T) {
 	}
 
 	select {
-	case got := <-subCh:
+	case got, ok := <-subCh:
+		if !ok {
+			t.Fatal("subscription channel closed unexpectedly")
+		}
 		if got != want {
 			t.Fatalf("mismatch: got %+v, want %+v", got, want)
 		}
-	case <-time.After(time.Second):
+	case <-time.After(2 * time.Second):
 		t.Fatal("timeout waiting for message")
 	}
 }

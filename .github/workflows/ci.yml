@@ -67,7 +67,6 @@ jobs:
       redis:
         image: redis:7-alpine
         ports: ["6379:6379"]
-        container_name: gh-redis
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s

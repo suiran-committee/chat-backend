@@ -15,67 +15,64 @@ env:
   FRONTEND_ORIGIN: '*'
 
 jobs:
-  unit:
-    runs-on: ubuntu-latest
+    unit:
+        runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+        steps:
+          - uses: actions/checkout@v4
 
-      - name: Set up Go 1.23 (latest patch)
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.23"
-          check-latest: true
+          - name: Set up Go 1.23 (latest patch)
+            uses: actions/setup-go@v5
+            with:
+              go-version: "1.23"
+              check-latest: true
 
-      - name: Cache Go modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go1.23-${{ hashFiles('**/go.sum') }}
+          - name: Cache Go modules
+            uses: actions/cache@v4
+            with:
+              path: |
+                ~/.cache/go-build
+                ~/go/pkg/mod
+              key: ${{ runner.os }}-go1.23-${{ hashFiles('**/go.sum') }}
 
-      - name: Run unit tests with coverage
-        run: |
-          go test ./... -covermode=atomic -coverprofile=coverage.out
+          - name: Run unit tests with coverage
+            run: go test ./... -covermode=atomic -coverprofile=coverage.out
 
-      - name: govulncheck
-        uses: golang/govulncheck-action@v1
-        with:
-          go-version-input: "1.23"
-          check-latest: true
-          go-package: ./...
-          output-format: text
+          - name: govulncheck
+            uses: golang/govulncheck-action@v1
+            with:
+              go-version-input: "1.23"
+              check-latest: true
+              go-package: ./...
+              output-format: text
 
-      - name: Generate coverage badge
-        if: github.ref_name == 'main'
-        uses: k1LoW/github-coverage-badge@v1
-        with:
-          coverage-file: coverage.out
-          badge-file: coverage.svg
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          - name: Generate & commit coverage badge (main only)
+            if: github.ref_name == 'main'
+            run: |
+              go install github.com/kyoh86/coverbadge@latest
+              coverbadge -o coverage.svg coverage.out
 
-      - name: Generate HTML coverage report
-        run: |
-          go tool cover -html=coverage.out -o coverage.html
+              git config --global user.name  "github-actions[bot]"
+              git config --global user.email "github-actions[bot]@users.noreply.github.com"
+              git add coverage.svg
+              if git diff --cached --quiet; then
+                echo "coverage.svg unchanged"
+              else
+                git commit -m "chore: update coverage badge [skip ci]"
+                git push
+              fi
 
-      - name: Upload coverage artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: |
-            coverage.out
-            coverage.svg
-            coverage.html
+          - name: Generate HTML coverage report
+            run: go tool cover -html=coverage.out -o coverage.html
 
-      - name: Deploy coverage to GitHub Pages
-        if: github.ref_name == 'main'
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
-          publish_branch: gh-pages
-          keep_files: true
+          - name: Upload coverage artifacts
+            uses: actions/upload-artifact@v4
+            with:
+              name: coverage
+              path: |
+                coverage.out
+                coverage.svg
+                coverage.html
 
   integration:
     if: github.event_name != 'pull_request'

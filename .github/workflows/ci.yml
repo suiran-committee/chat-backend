@@ -15,7 +15,7 @@ env:
   FRONTEND_ORIGIN: '*'
 
 jobs:
-    unit:
+  unit:
         runs-on: ubuntu-latest
 
         steps:

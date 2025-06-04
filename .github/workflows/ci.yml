@@ -32,7 +32,9 @@ jobs:
           cache: true
 
       - name: Run unit tests with coverage
-        run: go test ./... -covermode=atomic -coverprofile=coverage.out
+        run: |
+            go test ./... -covermode=atomic -coverpkg=./... -coverprofile=coverage.out
+            test -f coverage.out || (echo "coverage.out not found"; exit 1)
 
       - name: govulncheck
         uses: golang/govulncheck-action@v1

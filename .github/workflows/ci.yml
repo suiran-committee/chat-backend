@@ -36,6 +36,10 @@ jobs:
             go test ./... -covermode=atomic -coverpkg=./... -coverprofile=coverage.out
             test -f coverage.out || (echo "coverage.out not found"; exit 1)
 
+      - name: check directory
+        run: |
+          ls -la
+
       - name: govulncheck
         uses: golang/govulncheck-action@v1
         with:

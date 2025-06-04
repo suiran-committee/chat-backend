@@ -46,6 +46,7 @@ jobs:
               check-latest: true
               go-package: ./...
               output-format: text
+              cache: false
 
           - name: Generate & commit coverage badge (main only)
             if: github.ref_name == 'main'

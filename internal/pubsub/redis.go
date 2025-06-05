@@ -33,17 +33,22 @@ func (r *redisPubSub) Publish(ctx context.Context, m model.Message) error {
 }
 
 func (r *redisPubSub) Subscribe(ctx context.Context) (<-chan model.Message, func() error, error) {
-	sub := r.rdb.Subscribe(ctx, channel)
-	ch := make(chan model.Message)
-	go func() {
-		for msg := range sub.Channel() {
-			var m model.Message
-			_ = json.Unmarshal([]byte(msg.Payload), &m)
-			ch <- m
-		}
-		close(ch)
-	}()
-	return ch, sub.Close, nil
+    sub := r.rdb.Subscribe(ctx, channel)
+
+    if _, err := sub.Receive(ctx); err != nil {
+        return nil, nil, err
+    }
+
+    ch := make(chan model.Message)
+    go func() {
+        for msg := range sub.Channel() {
+            var m model.Message
+            _ = json.Unmarshal([]byte(msg.Payload), &m)
+            ch <- m
+        }
+        close(ch)
+    }()
+    return ch, sub.Close, nil
 }
 
 func (r *redisPubSub) Close() error { return r.rdb.Close() }

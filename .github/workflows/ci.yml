@@ -47,15 +47,47 @@ jobs:
       - name: Generate & commit coverage badge (main only)
         if: github.ref_name == 'main'
         run: |
-          go install github.com/nikolaydubina/coverage-badge@latest
-          coverbadge -o coverage.svg coverage.out
-          git config --global user.name  "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add coverage.svg
-          if ! git diff --cached --quiet; then
+            # カバレッジ率 (整数) を抽出
+            cov=$(go tool cover -func coverage.out | awk '/^total:/ { sub(/%/, "", $3); print int($3) }')
+
+            # 色判定 (>=90% green, >=75% yellow, else red)
+            if   [ "$cov" -ge 90 ]; then color="#4c1"
+            elif [ "$cov" -ge 75 ]; then color="#dfb317"
+            else                         color="#e05d44"
+            fi
+
+            # 幅計算: 左(65px) + 文字列幅(8px/文字)
+            len=${#cov}
+            width=$((65 + 8 * len))
+
+            # SVG 生成
+            cat > coverage.svg <<EOF
+            <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="20">
+            <linearGradient id="b" x2="0" y2="100%%">
+                <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+                <stop offset="1" stop-opacity=".1"/>
+            </linearGradient>
+            <mask id="a"><rect width="${width}" height="20" rx="3" fill="#fff"/></mask>
+            <g mask="url(#a)">
+                <rect width="65" height="20" fill="#555"/>
+                <rect x="65" width="$((width-65))" height="20" fill="${color}"/>
+                <rect width="${width}" height="20" fill="url(#b)"/>
+            </g>
+            <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+                <text x="33" y="15">coverage</text>
+                <text x="$((65+(width-65)/2))" y="15">${cov}%</text>
+            </g>
+            </svg>
+            EOF
+
+            git config --global user.name  "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git add coverage.svg
+            if ! git diff --cached --quiet; then
             git commit -m "chore: update coverage badge [skip ci]"
             git push
-          fi
+            fi
+
 
       - name: Generate HTML coverage report
         if: hashFiles('coverage.out') != ''

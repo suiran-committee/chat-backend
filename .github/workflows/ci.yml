@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -20,36 +20,31 @@ env:
 jobs:
   unit:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Go 1.23 (latest patch)
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: 1.23
           check-latest: true
           cache: true
 
       - name: Run unit tests with coverage
         run: |
-            go test ./... -covermode=atomic -coverpkg=./... -coverprofile=coverage.out
-            test -f coverage.out || (echo "coverage.out not found"; exit 1)
-
-      - name: check directory
-        run: |
-          ls -la
+          go test ./... -coverpkg=./... -covermode=atomic -coverprofile=coverage.out
+          test -s coverage.out || (echo "coverage.out not found"; exit 1)
 
       - name: govulncheck
         uses: golang/govulncheck-action@v1
         with:
-          go-version-input: "1.23"
+          go-version-input: 1.23
           check-latest: true
           go-package: ./...
           output-format: text
           cache: false
 
-      - name: Generate & commit coverage badge (main only)
+      - name: Generate & commit coverage badge
         if: github.ref_name == 'main'
         run: |
           go install github.com/kyoh86/coverbadge@latest
@@ -57,17 +52,17 @@ jobs:
           git config --global user.name  "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add coverage.svg
-          if git diff --cached --quiet; then
-            echo "coverage.svg unchanged"
-          else
+          if ! git diff --cached --quiet; then
             git commit -m "chore: update coverage badge [skip ci]"
             git push
           fi
 
       - name: Generate HTML coverage report
+        if: hashFiles('coverage.out') != ''
         run: go tool cover -html=coverage.out -o coverage.html
 
       - name: Upload coverage artifacts
+        if: hashFiles('coverage.out') != ''
         uses: actions/upload-artifact@v4
         with:
           name: coverage
@@ -80,7 +75,6 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: unit
     runs-on: ubuntu-latest
-
     services:
       postgres:
         image: postgres:14
@@ -88,7 +82,7 @@ jobs:
           POSTGRES_PASSWORD: chat
           POSTGRES_USER: chat
           POSTGRES_DB: chat
-        ports: ["5432:5432"]
+        ports: ['5432:5432']
         options: >-
           --health-cmd "pg_isready -U chat"
           --health-interval 10s
@@ -96,7 +90,7 @@ jobs:
           --health-retries 5
       redis:
         image: redis:7-alpine
-        ports: ["6379:6379"]
+        ports: ['6379:6379']
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 10s
@@ -106,10 +100,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Go 1.23 (latest patch)
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: 1.23
           check-latest: true
           cache: true
 

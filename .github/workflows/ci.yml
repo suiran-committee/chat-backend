@@ -47,7 +47,7 @@ jobs:
       - name: Generate & commit coverage badge
         if: github.ref_name == 'main'
         run: |
-          go install github.com/kyoh86/coverbadge@latest
+          go install github.com/kyoh86/coverbadge/v2@latest
           coverbadge -o coverage.svg coverage.out
           git config --global user.name  "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"

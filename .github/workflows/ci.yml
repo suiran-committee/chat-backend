@@ -44,10 +44,10 @@ jobs:
           output-format: text
           cache: false
 
-      - name: Generate & commit coverage badge
+      - name: Generate & commit coverage badge (main only)
         if: github.ref_name == 'main'
         run: |
-          go install github.com/kyoh86/coverbadge/cmd/coverbadge@latest
+          go install github.com/nikolaydubina/coverage-badge@latest
           coverbadge -o coverage.svg coverage.out
           git config --global user.name  "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
